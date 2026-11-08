@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#304d78">
+<title>My ABC World – عالم حروفي الإنجليزية</title>
+<style>
+:root{--navy:#304d78;--blue:#eaf1fa;--ink:#263750;--gold:#efc568;--green:#dff3e7}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fb;color:var(--ink);font-family:Arial,"Noto Sans Arabic",sans-serif;line-height:1.55}
+.app{max-width:850px;margin:auto;padding:14px}
+header{background:linear-gradient(130deg,#243b69,#6689b9);color:white;text-align:center;border-radius:20px;padding:22px 12px}
+h1{font-size:clamp(25px,5vw,36px);margin:4px}
+header p{margin:4px}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}
+button,select{font:inherit}
+button{cursor:pointer;touch-action:manipulation}
+nav button,.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:bold;background:var(--navy);color:white}
+nav button{flex:1 1 100px;background:white;color:var(--navy);border:1px solid #d8e1ed}
+nav button.active{background:var(--navy);color:white}
+.card{background:white;border:1px solid #e0e7f0;border-radius:18px;padding:17px;margin:12px 0}
+h2{font-size:22px;margin:4px 0 12px}
+.muted{color:#66758a;font-size:14px}
+.letter-pair{direction:ltr;display:flex;justify-content:center;align-items:center;gap:clamp(20px,8vw,65px);padding:15px}
+.letter-box{text-align:center;min-width:100px}
+.upper{font-size:clamp(85px,20vw,140px);font-weight:900;color:#2d4d7a;line-height:1.1}
+.lower{font-size:clamp(75px,17vw,115px);font-weight:900;color:#c77740;line-height:1.1}
+.caption{font-size:16px;color:#66758a}
+.word{direction:ltr;text-align:center;font-size:26px;font-weight:bold;color:#34547e}
+.picture{text-align:center;font-size:76px}
+.center{text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.btn.secondary{background:#eaf0f8;color:#304d78;border:1px solid #d7e1ee}
+.btn.gold{background:var(--gold);color:#42351b}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
+.island{background:linear-gradient(145deg,#fff,#edf4fa);border:2px solid #dce6f0;border-radius:16px;padding:12px;color:var(--ink);min-height:130px}
+.island b{font-size:38px;display:block;color:var(--navy);direction:ltr}
+.choice{border:2px solid #d8e2ee;background:#f8faff;border-radius:15px;padding:15px;min-height:90px;font-size:30px;font-weight:bold;color:var(--navy)}
+.choice:focus-visible,button:focus-visible{outline:4px solid #e9b94f;outline-offset:3px}
+.choice.correct{background:var(--green);border-color:#4b9b6c}
+.choice.wrong{background:#fff0e5;border-color:#d99a61}
+.feedback{padding:12px;border-radius:12px;background:#eef3fa;margin:12px 0;min-height:48px}
+.feedback.good{background:var(--green);color:#236642}
+.feedback.try{background:#fff2e7;color:#805329}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+select{padding:9px;border:1px solid #cbd7e5;border-radius:10px;background:white}
+.hidden{display:none}
+footer{text-align:center;color:#718096;font-size:12px;padding:12px}
+@media(max-width:420px){.app{padding:8px}.card{padding:12px}.btn{padding:11px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<div style="font-size:35px">🏝️ ⭐ 🍎</div>
+<h1>My ABC World</h1>
+<div style="font-size:20px">عالم حروفي الإنجليزية</div>
+<p>نتعلّم الحروف الكبيرة والصغيرة معًا 💛</p>
+</header>
+<nav>
+<button class="active" data-page="home">🏝️ الجزر</button>
+<button data-page="learn">📖 تعلّم الحروف</button>
+<button data-page="match">🔤 طابق الحروف</button>
+<button data-page="quiz">🎮 اختبر نفسك</button>
+</nav>
+<main id="screen" aria-live="polite"></main>
+<footer>الحروف التي نتعلمها: A a · B b · C c · D d · E e</footer>
+</div>
+<script>
+(()=>{
+const letters=[
+ {u:"A",l:"a",word:"apple",emoji:"🍎",name:"A",phonetic:"short a sound"},
+ {u:"B",l:"b",word:"ball",emoji:"⚽",name:"B",phonetic:"b sound"},
+ {u:"C",l:"c",word:"cat",emoji:"🐱",name:"C",phonetic:"k sound"},
+ {u:"D",l:"d",word:"dog",emoji:"🐶",name:"D",phonetic:"d sound"},
+ {u:"E",l:"e",word:"egg",emoji:"🥚",name:"E",phonetic:"short e sound"}
+];
+let page="home",idx=0,score=0,attempt=0,selected=null,done=false,voiceEnabled=true;
+const screen=document.getElementById("screen");
+function speak(text){
+ if(!voiceEnabled)return;
+ if(!("speechSynthesis" in window)){alert("الصوت غير مدعوم في هذا المتصفح. جرّب فتح الملف في Chrome أو Edge.");return;}
+ window.speechSynthesis.cancel();
+ const utter=new SpeechSynthesisUtterance(text);
+ utter.lang="en-US";utter.rate=.78;utter.pitch=1;
+ const voices=window.speechSynthesis.getVoices();
+ const voice=voices.find(v=>v.lang==="en-US")||voices.find(v=>v.lang.startsWith("en"));
+ if(voice)utter.voice=voice;
+ window.speechSynthesis.speak(utter);
+}
+function pair(x){return `<div class="letter-pair">
+ <div class="letter-box"><div class="upper">${x.u}</div><div class="caption">حرف كبير · Uppercase</div><button class="btn secondary" data-say="${x.u}">🔊 اسمع اسم الحرف</button></div>
+ <div class="letter-box"><div class="lower">${x.l}</div><div class="caption">حرف صغير · Lowercase</div><button class="btn secondary" data-say="${x.l}">🔊 اسمع الحرف</button></div>
+ </div>`}
+function home(){
+ return `<section class="card"><h2>أهلًا بك في عالم الحروف! 🌟</h2>
+ <p>اختر جزيرة لتتعلم الحرف الكبير والصغير، واسمع اسمه وكلمة تبدأ به.</p>
+ <div class="row"><label>مستوى التدريب:
+ <select id="level"><option>سهل – خياران</option><option>متوسط – ثلاثة خيارات</option><option>تحدّي – خمسة خيارات</option></select></label>
+ <button class="btn secondary" id="toggleSound">🔊 الصوت: ${voiceEnabled?"يعمل":"متوقف"}</button></div>
+ </section><div class="grid">${letters.map((x,i)=>`<button class="island" data-island="${i}"><b>${x.u} ${x.l}</b><strong>جزيرة ${x.u}</strong><div>${x.emoji} ${x.word}</div></button>`).join("")}</div>`;
+}
+function learn(){
+ let x=letters[idx];
+ return `<section class="card"><div class="row"><span>جزيرة ${x.u}</span><span>${idx+1} من 5</span></div>
+ ${pair(x)}
+ <div class="picture">${x.emoji}</div><div class="word">${x.word}</div>
+ <p class="center muted">اسم الحرف يختلف عن صوته داخل الكلمة. مثال: اسم A هو “ay”، وفي apple نسمع صوتًا قصيرًا مختلفًا.</p>
+ <div class="actions"><button class="btn" data-say="${x.word}">🔊 اسمع كلمة ${x.word}</button>
+ <button class="btn gold" data-say="${x.u}">🔊 اسمع اسم ${x.u}</button></div>
+ <div class="actions"><button class="btn secondary" id="prev">السابق</button><button class="btn" id="next">التالي</button><button class="btn secondary" id="toMatch">تدرّب على المطابقة</button></div></section>`;
+}
+function match(){
+ let x=letters[idx];
+ let opts=[x,...letters.filter(z=>z!==x).sort(()=>Math.random()-.5).slice(0,2)];
+ if(document.getElementById("level")?.value.includes("خمسة"))opts=letters.slice();
+ if(document.getElementById("level")?.value.includes("خياران"))opts=[x,letters[(idx+1)%5]];
+ opts.sort(()=>Math.random()-.5);
+ return `<section class="card"><h2>طابق الحرف الكبير مع الصغير</h2><p>اختر الحرف الكبير ${x.u}، ثم اختر الحرف الصغير المطابق.</p>
+ <div class="center"><div class="upper">${x.u}</div><div class="caption">الحرف الكبير</div></div>
+ <div class="grid">${opts.map(z=>`<button class="choice" data-match="${z.l}">${z.l}</button>`).join("")}</div>
+ <div class="feedback" id="feedback">خذ وقتك. لا يوجد مؤقت ولا خصم نقاط.</div>
+ <div class="actions"><button class="btn secondary" id="newMatch">حرف آخر</button><button class="btn" id="learnBack">ارجع للتعلّم</button></div></section>`;
+}
+function quiz(){
+ let x=letters[idx],opts=[x,...letters.filter(z=>z!==x).sort(()=>Math.random()-.5).slice(0,2)];
+ if(document.getElementById("level")?.value.includes("خياران"))opts=[x,letters[(idx+1)%5]];
+ if(document.getElementById("level")?.value.includes("خمسة"))opts=letters.slice();
+ opts.sort(()=>Math.random()-.5);
+ return `<section class="card"><h2>اسمع واختر الحرف الصحيح</h2>
+ <p class="center">استمع إلى اسم الحرف، ثم اختر شكله الكبير.</p>
+ <div class="center"><button class="btn gold" id="listen">🔊 اسمع مرة أخرى</button></div>
+ <div class="grid">${opts.map(z=>`<button class="choice" data-quiz="${z.u}">${z.u} <span style="color:#c77740">${z.l}</span></button>`).join("")}</div>
+ <div class="feedback" id="feedback">يمكنك إعادة الاستماع في أي وقت.</div>
+ <div class="actions"><button class="btn secondary" id="nextQuiz">السؤال التالي</button></div>
+ <p class="muted">التدريب للتعلّم وليس للسرعة. لا توجد عقوبة على الخطأ.</p></section>`;
+}
+function render(){
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ screen.innerHTML=page==="home"?home():page==="learn"?learn():page==="match"?match():quiz();
+}
+function go(p){page=p;render();}
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.page){go(b.dataset.page);return;}
+ if(b.dataset.island!==undefined){idx=+b.dataset.island;go("learn");return;}
+ if(b.dataset.say){speak(b.dataset.say);return;}
+ if(b.id==="toggleSound"){voiceEnabled=!voiceEnabled;if(!voiceEnabled&&"speechSynthesis"in window)speechSynthesis.cancel();render();return;}
+ if(b.id==="prev"){idx=(idx+4)%5;render();return;}
+ if(b.id==="next"){idx=(idx+1)%5;render();return;}
+ if(b.id==="toMatch"){go("match");return;}
+ if(b.id==="learnBack"){go("learn");return;}
+ if(b.id==="newMatch"){idx=(idx+1)%5;go("match");return;}
+ if(b.id==="listen"){speak(letters[idx].u);return;}
+ if(b.id==="nextQuiz"){idx=(idx+1)%5;go("quiz");return;}
+ if(b.dataset.match){
+ const ok=b.dataset.match===letters[idx].l;
+ const f=document.getElementById("feedback");
+ if(ok){b.classList.add("correct");f.className="feedback good";f.textContent="⭐ ممتاز! "+letters[idx].u+" يطابق "+letters[idx].l+".";score++;speak(letters[idx].u);}
+ else{b.classList.add("wrong");f.className="feedback try";f.textContent="خلينا نجرب مع بعض. الحرف الصغير المطابق هو "+letters[idx].l+"."; }
+ return;
+ }
+ if(b.dataset.quiz){
+ const ok=b.dataset.quiz===letters[idx].u;
+ const f=document.getElementById("feedback");
+ if(ok){b.classList.add("correct");f.className="feedback good";f.textContent="⭐ أحسنت! إجابة صحيحة.";score++;speak(letters[idx].u);}
+ else{b.classList.add("wrong");f.className="feedback try";f.textContent="لا بأس. الحرف الذي سمعته هو "+letters[idx].u+". جرّب مرة أخرى."; }
+ return;
+ }
+});
+render();
+if("speechSynthesis" in window){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();}
+})();
+</script>
+</body>
+</html>
